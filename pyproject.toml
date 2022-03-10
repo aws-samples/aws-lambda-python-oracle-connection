@@ -1,0 +1,30 @@
+[tool.isort]
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parantheses = true
+line_length = 120
+lines_after_imports = 2
+
+[tool.black]
+line-length = 120
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | _build
+  | egg-info
+  | buck-out
+  | build
+  | dist
+  | env
+)/
+'''
+
+[tool.pydocstyle]
+convention = "google"
+add-ignore = "D100,D212"
