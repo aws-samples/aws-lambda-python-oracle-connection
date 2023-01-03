@@ -82,11 +82,12 @@ repos:
   hooks:
     - id: mypy
       additional_dependencies: [types-requests]
-      args: [--strict, --ignore-missing-imports, --allow-untyped-decorators, --install-types, --non-interactive]
+      args: [--strict, --ignore-missing-imports, --allow-untyped-decorators, --install-types, --non-interactive, --scripts-are-modules]
+      pass_filenames: false
 - repo: local
   hooks:
   - id: security-scanning
     name: checkov
-    entry: bash -c 'cd cdk && cdk synth > /dev/null && cd .. && checkov -d .'
+    entry: bash -c 'cd cdk && cdk synth > /dev/null && cd .. && checkov -d . --compact --quiet --skip-suppressions'
     language: system
     pass_filenames: false

@@ -8,6 +8,6 @@ import sys
 from unittest.mock import MagicMock
 
 
-sys.modules["cx_Oracle"] = MagicMock()
+sys.modules["oracledb"] = MagicMock()
 os.environ["REGION"] = "eu-central-1"
 os.environ["SECRET_NAME"] = "mock-secret"

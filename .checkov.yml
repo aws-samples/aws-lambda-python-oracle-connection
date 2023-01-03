@@ -4,3 +4,5 @@ download-external-modules: true
 external-modules-download-path: .external_modules
 framework: all
 evaluate-variables: true
+skip-path: cdk/cdk.out/asset.*
+skip-check: CKV_AWS_117

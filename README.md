@@ -1,9 +1,13 @@
 # Oracle Database Connection in AWS Lambda using Python
 
 This example shows how to connect to an Oracle database (RDS or on-prem) from AWS Lambda using python.
-The official Oracle driver (cx_Oracle) requires the Oracle Instant Client with system dependencies
-to connect to an Oracle database, which does not fit well into a lambda package or layer. Therefore
-this example shows how to use Lambda container images to properly install the Oracle dependencies.
+The official Oracle driver (python-oracledb) comes with two different modes: (1) a *thin* mode that does not
+require any additional system libraries, but comes with a few limitations and a *thick* mode, which requires the Oracle Instant Client with system dependencies
+to connect to an Oracle database. The example here deploys both versions of the driver. However, the thick mode does not fit well into a lambda package or layer. Therefore
+this example shows how to use Lambda container images to properly install the Oracle dependencies. The thin mode can be deployed using a simple lambda layer and is the leaner version.
+
+This example will deploy both, the thin and the tick mode for reference. For application usage, we recommend to pick the option that is suitable for the application. See the following reference for
+a description of these options: https://python-oracledb.readthedocs.io/en/latest/user_guide/appendix_a.html#featuresummary
 
 ![architecture diagram](architecture.png "Architecture")
 
@@ -17,7 +21,7 @@ The following software is necessary on the client in order to build and deploy t
 - CDK version 2.3.0
 
 In addition, this setup does not include an Oracle database, but assumes that one already exists.
-The deployment procedure outlined below will download and install the [cx_Oracle driver](https://cx-oracle.readthedocs.io) and [Oracle Instant Client](http://www.oracle.com/technetwork/database/database-technologies/instant-client/overview/index.html), both are subject to separate licensing terms.
+The deployment procedure outlined below will download and install the [python-oracledb driver](https://oracle.github.io/python-oracledb/index.html) and [Oracle Instant Client](http://www.oracle.com/technetwork/database/database-technologies/instant-client/overview/index.html), both are subject to separate licensing terms.
 
 
 ## AWS Services
@@ -46,7 +50,6 @@ The following AWS services are used to run this example.
     ```
     cd cdk
     cdk bootstrap
-    cdk synth
     cdk deploy
     ```
 
@@ -54,7 +57,7 @@ The following AWS services are used to run this example.
 
     ![edit secret in secrets manager](edit-secret.png "Add Credentials")
 
-5. Open the Lambda function `py-oracle-connection-example` in the AWS Console and specify the correct VPC settings in order to connect to the Oracle database.
+5. Open the Lambda function `py-oracle-connection-example-thin` or `py-oracle-connection-example-thick` in the AWS Console and specify the correct VPC settings in order to connect to the Oracle database.
 
     ![configure vpc](edit-vpc.png "Add VPC configuration to connect to Oracle")
 
@@ -62,7 +65,7 @@ The following AWS services are used to run this example.
 
     ![test function](test-function.png "Test Lambda function")
 
-7. Adapt the lambda handler as necessary to execute queries against Oracle database, see [lambda_handler.py](lambda/lambda_handler.py)
+7. Adapt the lambda handler as necessary to execute queries against Oracle database, see [lambda_handler.py](functions/thin/lambda_handler.py)
 
 8. Destroy all resources when tests are done
 

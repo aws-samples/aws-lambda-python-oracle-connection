@@ -1,0 +1,3 @@
+aws_lambda_powertools[tracer]~=2.5.0
+boto3~=1.26.41
+oracledb~=1.2.1
