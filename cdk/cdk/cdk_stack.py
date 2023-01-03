@@ -9,8 +9,8 @@ from typing import Any, Dict
 from aws_cdk import Duration, Stack
 from aws_cdk.aws_iam import AnyPrincipal, Effect, PolicyStatement
 from aws_cdk.aws_kms import Key
-from aws_cdk.aws_lambda import DockerImageCode, DockerImageFunction, Tracing
-from aws_cdk.aws_logs import RetentionDays
+from aws_cdk.aws_lambda import DockerImageCode, DockerImageFunction, Runtime, Tracing
+from aws_cdk.aws_lambda_python_alpha import PythonFunction, PythonLayerVersion
 from aws_cdk.aws_secretsmanager import Secret, SecretStringGenerator
 from aws_cdk.aws_sqs import Queue
 from constructs import Construct
@@ -39,7 +39,7 @@ class CdkStack(Stack):  # type: ignore
         secret = self.build_connection_secret(kms_key)
         self.build_lambda(kms_key, secret)
 
-    def build_lambda(self, kms_key: Key, secret: Secret) -> DockerImageFunction:
+    def build_lambda(self, kms_key: Key, secret: Secret) -> None:
         """Build Lambda function with connection to Oracle database.
 
         Args:
@@ -50,7 +50,10 @@ class CdkStack(Stack):  # type: ignore
             DockerImageFunction: lambda function
         """
         stack_path = os.path.dirname(os.path.realpath(__file__))
-        lambda_path = os.path.join(stack_path, "..", "..", "lambda")
+        lambda_path = os.path.join(stack_path, "..", "..", "functions")
+        thick_path = os.path.join(lambda_path, "thick")
+        thin_path = os.path.join(lambda_path, "thin")
+        thin_path_layer = os.path.join(lambda_path, "thin-layer")
 
         dlq = Queue(
             self,
@@ -71,12 +74,12 @@ class CdkStack(Stack):  # type: ignore
             ),
         )
 
-        fn = DockerImageFunction(
+        fn_thick = DockerImageFunction(
             self,
-            "PyOracleConnectionLambda",
-            function_name="py-oracle-connection-example",
-            code=DockerImageCode.from_image_asset(directory=lambda_path),
-            description="Example Lambda to illustrate connection to Oracle using Python",
+            "PyOracleConnectionLambdaThick",
+            function_name="py-oracle-connection-example-thick",
+            code=DockerImageCode.from_image_asset(directory=thick_path),
+            description="Example Lambda to illustrate connection to Oracle using Python (thick client)",
             dead_letter_queue=dlq,
             environment={
                 "POWERTOOLS_SERVICE_NAME": "connection-example",
@@ -91,10 +94,40 @@ class CdkStack(Stack):  # type: ignore
             timeout=Duration.seconds(45),
         )
 
-        kms_key.grant_decrypt(fn)
-        secret.grant_read(fn)
+        fn_thin_layer = PythonLayerVersion(
+            self,
+            "PyOracleConnectionLambdaThinLayer",
+            entry=thin_path_layer,
+            compatible_runtimes=[Runtime.PYTHON_3_9],
+        )
 
-        return fn
+        fn_thin = PythonFunction(
+            self,
+            "PyOracleConnectionLambdaThin",
+            function_name="py-oracle-connection-example-thin",
+            description="Example Lambda to illustrate connection to Oracle using Python (thin client)",
+            entry=thin_path,
+            runtime=Runtime.PYTHON_3_9,
+            index="lambda_handler.py",
+            handler="handler",
+            dead_letter_queue=dlq,
+            layers=[fn_thin_layer],
+            environment={
+                "POWERTOOLS_SERVICE_NAME": "connection-example",
+                "POWERTOOLS_METRICS_NAMESPACE": "PyOracleConn",
+                "REGION": self.region,
+                "SECRET_NAME": secret.secret_name,
+            },
+            environment_encryption=kms_key,
+            memory_size=128,
+            tracing=Tracing.ACTIVE,
+            reserved_concurrent_executions=5,
+            timeout=Duration.seconds(45),
+        )
+
+        for fn in [fn_thin, fn_thick]:
+            kms_key.grant_decrypt(fn)
+            secret.grant_read(fn)
 
     def build_connection_secret(self, kms_key: Key) -> Secret:
         """Secret for the Oracle DB Connection.

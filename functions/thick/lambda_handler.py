@@ -6,7 +6,7 @@
 import os
 from typing import Any, Dict, List
 
-import cx_Oracle
+import oracledb as cx_Oracle
 from aws_lambda_powertools import Logger, Tracer
 from aws_lambda_powertools.metrics import Metrics
 from aws_lambda_powertools.utilities import parameters
@@ -19,13 +19,14 @@ SECRET_NAME = os.getenv("SECRET_NAME")
 tracer = Tracer()
 logger = Logger()
 metrics = Metrics()
+cx_Oracle.init_oracle_client()
 
 
 @tracer.capture_lambda_handler
 @metrics.log_metrics
 def handler(event: Dict[str, Any], _: LambdaContext) -> List[str]:
     """
-    Lambda function example to connect to Oracle database using cx_Oracle.
+    Lambda function example to connect to Oracle database using python-oracledb.
 
     Keep in mind that this function will open a single connection on each execution
     and therefore measures need to be put in place to not overwhelm the database -
